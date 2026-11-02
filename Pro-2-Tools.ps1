@@ -60,7 +60,7 @@ function StartupChange($Undo,$Entries,$File) {
 function ExportProText {
     $items=$script:Targets | ForEach-Object { "@('"+$_[0].Replace("'","''")+"','"+$_[1].Replace("'","''")+"')" }
     $head='$ErrorActionPreference="Stop";$script:High="'+$script:High+'";$script:Targets=@('+($items -join ',')+');'
-    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','ConfirmAction','StartupWindow','StartReport','Start-Pro')
+    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','DashboardData','DarkTitle','UiFont','UiLabel','UiPanel','UiButton','SetUiStatus','ShowUiResult','UpdateBackupState','UpdateDashboard','ShowPage','ConfirmAction','StartupWindow','Invoke-ProAction','StartReport','NewMetricCard','OverviewPage','ProfilesPage','StartupPage','DiagnosticsPage','BuildSidebar','Start-Pro')
     $defs=$names | ForEach-Object { 'function '+$_+' {'+(Get-Command $_ -CommandType Function).Definition+'}' }
     return $head+"`n"+($defs -join "`n")+"`nStart-Pro`n"
 }
@@ -134,4 +134,20 @@ function NetworkReport {
         }
     } finally { $p.Dispose() }
     'Chỉ đo ICMP đến gateway và Cloudflare, không phải server game. Thiếu phản hồi chưa chứng minh game mất gói. Chưa đổi thiết lập mạng.'
+}
+
+function DashboardData([string]$Drive = $env:SystemDrive) {
+    $data=[ordered]@{CapturedAt=[DateTime]::Now;CpuName=$null;CpuLoad=$null;TotalRamGB=$null;UsedRamGB=$null;GpuName=$null;GpuDriver=$null;DiskName=$null;FreeDiskGB=$null;TotalDiskGB=$null}
+    try { $cpu=Get-CimInstance Win32_Processor | Select-Object -First 1; if ($cpu) { $data.CpuName=[string]$cpu.Name } } catch {}
+    try { $load=Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'"; if ($null -ne $load -and $null -ne $load.PercentProcessorTime) { $value=[double]$load.PercentProcessorTime; if ($value -ge 0 -and $value -le 100) { $data.CpuLoad=$value } } } catch {}
+    try {
+        $os=Get-CimInstance Win32_OperatingSystem
+        if ($os -and $os.TotalVisibleMemorySize -gt 0 -and $null -ne $os.FreePhysicalMemory -and $os.FreePhysicalMemory -ge 0 -and $os.FreePhysicalMemory -le $os.TotalVisibleMemorySize) { $data.TotalRamGB=[math]::Round($os.TotalVisibleMemorySize/1MB,1); $data.UsedRamGB=[math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,1) }
+    } catch {}
+    try { $gpu=@(Get-CimInstance Win32_VideoController); if ($gpu.Count) { $data.GpuName=($gpu | ForEach-Object {$_.Name}) -join ' / '; $data.GpuDriver=($gpu | ForEach-Object {$_.DriverVersion} | Select-Object -Unique) -join ' / ' } } catch {}
+    try {
+        $disk=Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object {$_.DeviceID -eq $Drive} | Select-Object -First 1
+        if ($disk -and $disk.Size -gt 0 -and $null -ne $disk.FreeSpace -and $disk.FreeSpace -ge 0 -and $disk.FreeSpace -le $disk.Size) { $data.DiskName=$disk.DeviceID; $data.TotalDiskGB=[math]::Round($disk.Size/1GB,1); $data.FreeDiskGB=[math]::Round($disk.FreeSpace/1GB,1) }
+    } catch {}
+    return [pscustomobject]$data
 }

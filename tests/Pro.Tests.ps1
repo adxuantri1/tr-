@@ -102,13 +102,13 @@ try {
  try {Fails {StartupChange $false @(ReadStartup 'Music') $backup};Assert ($script:Items.ContainsKey('Music')) 'Concurrent operation leaves startup unchanged'}finally{$held.Dispose()}
 
  $blocks=Get-ChildItem "$PSScriptRoot/../PRO-Paste-*.ps1"|Sort-Object Name
- Assert ($blocks.Count -eq 4) 'Four independently copyable blocks present'
+ Assert ($blocks.Count -ge 4) 'Independently copyable blocks present'
  $all=''
  foreach($file in $blocks){
   $s=Get-Content -LiteralPath $file.FullName -Raw;$all+=$s
   $tokens=$null;$errors=$null;$null=[Management.Automation.Language.Parser]::ParseInput($s,[ref]$tokens,[ref]$errors)
   Assert ($errors.Count -eq 0 -and $s.Length -lt 8000) 'Each paste block parses independently and is below 8000 characters'
  }
- Assert ($all -ceq (Get-Content "$PSScriptRoot/../PC-Tuner-Pro.ps1" -Raw)) 'Four paste blocks exactly reconstruct standalone app'
+ Assert ($all -ceq (Get-Content "$PSScriptRoot/../PC-Tuner-Pro.ps1" -Raw)) 'Paste blocks exactly reconstruct standalone app'
  "PASS: $script:Checks Pro startup/delivery assertions (simulated registry, real backups)."
 } finally {if(Microsoft.PowerShell.Management\Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force}}

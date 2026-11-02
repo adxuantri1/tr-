@@ -1,14 +1,4 @@
-﻿function ReadStartup($Name) {
-    $path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-    if (-not (Test-Path -LiteralPath $path)) { return $null }
-    $k=Get-Item -LiteralPath $path
-    try {
-        if ($k.GetValueNames() -notcontains $Name) { return $null }
-        $kind=$k.GetValueKind($Name).ToString()
-        if ($kind -notin @('String','ExpandString')) { throw 'Kiểu dữ liệu ứng dụng khởi động không được hỗ trợ.' }
-        [pscustomobject]@{Name=$Name; Kind=$kind; Value=$k.GetValue($Name,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}
-    } finally { $k.Close() }
-}
+﻿
 function StartupEntries {
     $path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
     if (Test-Path -LiteralPath $path) {
@@ -60,7 +50,7 @@ function StartupChange($Undo,$Entries,$File) {
 function ExportProText {
     $items=$script:Targets | ForEach-Object { "@('"+$_[0].Replace("'","''")+"','"+$_[1].Replace("'","''")+"')" }
     $head='$ErrorActionPreference="Stop";$script:High="'+$script:High+'";$script:Targets=@('+($items -join ',')+');'
-    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','ConfirmAction','StartupWindow','StartReport','Start-Pro')
+    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','DashboardData','DarkTitle','UiFont','UiLabel','UiPanel','UiButton','SetUiStatus','ShowUiResult','UpdateBackupState','UpdateDashboard','ShowPage','ConfirmAction','StartupWindow','Invoke-ProAction','StartReport','NewMetricCard','OverviewPage','ProfilesPage','StartupPage','DiagnosticsPage','BuildSidebar','Start-Pro')
     $defs=$names | ForEach-Object { 'function '+$_+' {'+(Get-Command $_ -CommandType Function).Definition+'}' }
     return $head+"`n"+($defs -join "`n")+"`nStart-Pro`n"
 }
@@ -72,4 +62,25 @@ function InstallPro([string]$desktop = [Environment]::GetFolderPath('Desktop')) 
     $cmd=@('@echo off','chcp 65001 >nul','powershell.exe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0PC-Tuner-Pro.ps1"','set "PC_TUNER_EXIT=%ERRORLEVEL%"','if not "%PC_TUNER_EXIT%"=="0" (','echo Không mở được ứng dụng. Xem lỗi phía trên rồi nhấn phím bất kỳ để đóng.','pause >nul',')','exit /b %PC_TUNER_EXIT%') -join "`r`n"
     [IO.File]::WriteAllText((Join-Path $folder 'START.cmd'),$cmd,[Text.UTF8Encoding]::new($false))
     return "Đã lưu ứng dụng: $folder`r`nLần sau mở START.cmd trong thư mục đó. Không tạo tự khởi động hoặc đổi chính sách chạy lệnh vĩnh viễn."
+}
+function AppReport {
+    $before=@{}; $watch=[Diagnostics.Stopwatch]::StartNew()
+    Get-Process | ForEach-Object { try { $before[$_.Id]=@($_.StartTime.Ticks,$_.TotalProcessorTime.TotalMilliseconds,$watch.Elapsed.TotalMilliseconds) } catch {} }
+    Start-Sleep -Seconds 2
+    $cores=[Environment]::ProcessorCount
+    $rows=@(Get-Process | ForEach-Object {
+        try {
+            $old=$before[$_.Id]
+            if ($null -ne $old -and $old[0] -eq $_.StartTime.Ticks) {
+                $elapsed=$watch.Elapsed.TotalMilliseconds-$old[2]
+                $cpu=[math]::Max(0,[math]::Min(100,100*($_.TotalProcessorTime.TotalMilliseconds-$old[1])/($elapsed*$cores)))
+                [pscustomobject]@{App=$_.ProcessName; PID=$_.Id; CPU_pct=[math]::Round($cpu,1); RAM_MB=[math]::Round($_.WorkingSet64/1MB)}
+            }
+        } catch {}
+    })
+    'ỨNG DỤNG DÙNG NHIỀU CPU: đo trong khoảng hai giây, chuẩn hóa theo số luồng CPU; không phải FPS.'
+    $rows | Sort-Object CPU_pct -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
+    'ỨNG DỤNG DÙNG NHIỀU RAM: bộ nhớ đang chiếm dụng; chưa chứng minh rò rỉ bộ nhớ.'
+    $rows | Sort-Object RAM_MB -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
+    'Chưa đóng ứng dụng nào. Bạn có thể tự xem và đóng các ứng dụng không dùng.'
 }

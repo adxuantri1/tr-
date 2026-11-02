@@ -1,24 +1,4 @@
-﻿function AppReport {
-    $before=@{}; $watch=[Diagnostics.Stopwatch]::StartNew()
-    Get-Process | ForEach-Object { try { $before[$_.Id]=@($_.StartTime.Ticks,$_.TotalProcessorTime.TotalMilliseconds,$watch.Elapsed.TotalMilliseconds) } catch {} }
-    Start-Sleep -Seconds 2
-    $cores=[Environment]::ProcessorCount
-    $rows=@(Get-Process | ForEach-Object {
-        try {
-            $old=$before[$_.Id]
-            if ($null -ne $old -and $old[0] -eq $_.StartTime.Ticks) {
-                $elapsed=$watch.Elapsed.TotalMilliseconds-$old[2]
-                $cpu=[math]::Max(0,[math]::Min(100,100*($_.TotalProcessorTime.TotalMilliseconds-$old[1])/($elapsed*$cores)))
-                [pscustomobject]@{App=$_.ProcessName; PID=$_.Id; CPU_pct=[math]::Round($cpu,1); RAM_MB=[math]::Round($_.WorkingSet64/1MB)}
-            }
-        } catch {}
-    })
-    'ỨNG DỤNG DÙNG NHIỀU CPU: đo trong khoảng hai giây, chuẩn hóa theo số luồng CPU; không phải FPS.'
-    $rows | Sort-Object CPU_pct -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
-    'ỨNG DỤNG DÙNG NHIỀU RAM: bộ nhớ đang chiếm dụng; chưa chứng minh rò rỉ bộ nhớ.'
-    $rows | Sort-Object RAM_MB -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
-    'Chưa đóng ứng dụng nào. Bạn có thể tự xem và đóng các ứng dụng không dùng.'
-}
+﻿
 function HealthReport {
     foreach ($class in @('Win32_Processor','Win32_VideoController','Win32_OperatingSystem','Win32_ComputerSystem','Win32_LogicalDisk')) {
         try {
@@ -60,21 +40,39 @@ function NetworkReport {
     } finally { $p.Dispose() }
     'Chỉ đo ICMP đến gateway và Cloudflare, không phải server game. Thiếu phản hồi chưa chứng minh game mất gói. Chưa đổi thiết lập mạng.'
 }
-function StartupWindow {
-    $entries=@(StartupEntries)
-    if (-not $entries.Count) { throw 'Không tìm thấy mục khởi động phù hợp của tài khoản hiện tại.' }
-    $d=New-Object Windows.Forms.Form; $d.Text='Ứng dụng khởi động — tài khoản hiện tại'; $d.Width=800; $d.Height=420; $d.StartPosition='CenterScreen'
-    $label=New-Object Windows.Forms.Label; $label.SetBounds(15,10,750,55)
-    $label.Text='Chỉ chọn ứng dụng bạn biết và không cần khi đăng nhập. Một số tên driver, bảo mật và Riot được ẩn. Không đóng ứng dụng đang chạy; không sửa thư mục Startup, dịch vụ hay tác vụ định kỳ.'
-    $d.Controls.Add($label)
-    $list=New-Object Windows.Forms.CheckedListBox; $list.SetBounds(15,70,750,240); $list.HorizontalScrollbar=$true
-    foreach ($entry in $entries) { [void]$list.Items.Add($entry.Name+' | '+$entry.Value) }; $d.Controls.Add($list)
-    $apply=New-Object Windows.Forms.Button; $apply.Text='Sao lưu và tắt mục đã chọn'; $apply.SetBounds(15,320,300,40); $apply.DialogResult='OK'; $d.Controls.Add($apply)
+
+function DashboardData([string]$Drive = $env:SystemDrive) {
+    $data=[ordered]@{CapturedAt=[DateTime]::Now;CpuName=$null;CpuLoad=$null;TotalRamGB=$null;UsedRamGB=$null;GpuName=$null;GpuDriver=$null;DiskName=$null;FreeDiskGB=$null;TotalDiskGB=$null}
+    try { $cpu=Get-CimInstance Win32_Processor | Select-Object -First 1; if ($cpu) { $data.CpuName=[string]$cpu.Name } } catch {}
+    try { $load=Get-CimInstance Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'"; if ($null -ne $load -and $null -ne $load.PercentProcessorTime) { $value=[double]$load.PercentProcessorTime; if ($value -ge 0 -and $value -le 100) { $data.CpuLoad=$value } } } catch {}
     try {
-        if ($d.ShowDialog() -eq 'OK') {
-            $selected=@($list.CheckedIndices | ForEach-Object { $entries[[int]$_] })
-            if (-not $selected.Count) { return }
-            if ((ConfirmAction "Sao lưu rồi tắt $($selected.Count) ứng dụng khởi động đã chọn?")) { $script:Output.Text=StartupChange $false $selected $script:StartupFile }
-        }
-    } finally { $d.Dispose() }
+        $os=Get-CimInstance Win32_OperatingSystem
+        if ($os -and $os.TotalVisibleMemorySize -gt 0 -and $null -ne $os.FreePhysicalMemory -and $os.FreePhysicalMemory -ge 0 -and $os.FreePhysicalMemory -le $os.TotalVisibleMemorySize) { $data.TotalRamGB=[math]::Round($os.TotalVisibleMemorySize/1MB,1); $data.UsedRamGB=[math]::Round(($os.TotalVisibleMemorySize-$os.FreePhysicalMemory)/1MB,1) }
+    } catch {}
+    try { $gpu=@(Get-CimInstance Win32_VideoController); if ($gpu.Count) { $data.GpuName=($gpu | ForEach-Object {$_.Name}) -join ' / '; $data.GpuDriver=($gpu | ForEach-Object {$_.DriverVersion} | Select-Object -Unique) -join ' / ' } } catch {}
+    try {
+        $disk=Get-CimInstance Win32_LogicalDisk -Filter 'DriveType=3' | Where-Object {$_.DeviceID -eq $Drive} | Select-Object -First 1
+        if ($disk -and $disk.Size -gt 0 -and $null -ne $disk.FreeSpace -and $disk.FreeSpace -ge 0 -and $disk.FreeSpace -le $disk.Size) { $data.DiskName=$disk.DeviceID; $data.TotalDiskGB=[math]::Round($disk.Size/1GB,1); $data.FreeDiskGB=[math]::Round($disk.FreeSpace/1GB,1) }
+    } catch {}
+    return [pscustomobject]$data
+}
+function DarkTitle($Window) {
+    try {
+        if (-not ('PCTunerWindowTheme' -as [type])) { Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class PCTunerWindowTheme { [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size); }' }
+        $enabled=1; $null=[PCTunerWindowTheme]::DwmSetWindowAttribute($Window.Handle,20,[ref]$enabled,4)
+    } catch { }
+}
+function UiFont([float]$Size=10,[bool]$Bold=$false) {
+    $key="$Size|$Bold"
+    if (-not $script:UiFonts.ContainsKey($key)) { $style=[Drawing.FontStyle]::Regular; if ($Bold) { $style=[Drawing.FontStyle]::Bold }; $script:UiFonts[$key]=[Drawing.Font]::new('Segoe UI',$Size,$style) }
+    return $script:UiFonts[$key]
+}
+function UiLabel([string]$Text,[float]$Size=10,[string]$Color='Text',[bool]$Bold=$false) {
+    $c=New-Object Windows.Forms.Label; $c.Text=$Text; $c.Dock='Fill'; $c.Margin=[Windows.Forms.Padding]::new(0); $c.AutoEllipsis=$true; $c.TextAlign='MiddleLeft'; $c.ForeColor=$script:Theme[$Color]; $c.Font=UiFont $Size $Bold
+    return $c
+}
+function UiPanel([int]$Padding=16) {
+    $p=New-Object Windows.Forms.Panel; $p.Dock='Fill'; $p.BackColor=$script:Theme.Surface; $p.Padding=[Windows.Forms.Padding]::new($Padding); $p.Margin=[Windows.Forms.Padding]::new(0,0,12,12)
+    $p.Add_Paint({ param($s,$e) $pen=[Drawing.Pen]::new($script:Theme.Border); try { $e.Graphics.DrawRectangle($pen,0,0,[math]::Max(0,$s.ClientSize.Width-1),[math]::Max(0,$s.ClientSize.Height-1)) } finally { $pen.Dispose() } })
+    return $p
 }

@@ -2,15 +2,12 @@
 . "$PSScriptRoot/../Pro-1-Core.ps1"
 . "$PSScriptRoot/../Pro-2-Tools.ps1"
 $ast=[Management.Automation.Language.Parser]::ParseFile("$PSScriptRoot/../Pro-3-Window.ps1",[ref]$null,[ref]$null)
-foreach($name in @('ConfirmAction','StartupWindow','StartReport','Start-Pro')){
- $fn=$ast.Find({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -eq $name},$false)
- Invoke-Expression $fn.Extent.Text
-}
+foreach($fn in $ast.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){ Invoke-Expression $fn.Extent.Text }
 $code=ExportProText
 $tokens=$null;$errors=$null;$export=[Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw $errors[0]}
 $definitions=@($export.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
-if($definitions.Count -ne 20){throw 'Export missing application functions'}
+if($definitions.Count -ne 38){throw 'Export missing application functions'}
 # Load only the preamble, not the final Windows UI invocation, then verify config serialization.
 $preamble=$code.Substring(0,$code.IndexOf('function UserID'))
 Invoke-Expression $preamble
@@ -29,5 +26,5 @@ try {
  if($bytes[0] -ne 239 -or $bytes[1] -ne 187 -or $bytes[2] -ne 191){throw 'Saved Windows script needs UTF-8 BOM'}
  $launcher=Get-Content -LiteralPath $cmd -Raw
  if(-not $launcher.Contains('%~dp0PC-Tuner-Pro.ps1') -or -not $launcher.Contains('-STA') -or -not $launcher.StartsWith('@echo off')){throw 'Invalid standalone Windows launcher'}
- 'PASS: Keep app writes the verified standalone script and launcher; all 20 functions, four targets and UTF-8 BOM preserved.'
+ 'PASS: Keep app writes the verified standalone script and launcher; all 38 functions, four targets and UTF-8 BOM preserved.'
 } finally {Remove-Item -LiteralPath $temp -Recurse -Force}

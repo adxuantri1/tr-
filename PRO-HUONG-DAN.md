@@ -4,21 +4,24 @@ Bản nâng cấp cho Windows 10/11, dùng PowerShell 5.1 có sẵn. Không có 
 
 ## Chạy khi tải artifact bị lỗi
 
-Bốn phần dưới đây là mã thường, không phải dữ liệu nén. Mỗi phần chỉ 73–82 dòng, dưới 8.000 ký tự, để tránh chép một vùng mã quá dài như các gói trước.
+Bảy phần dưới đây là mã thường, không phải dữ liệu nén. Mỗi phần chỉ dưới 90 dòng, dưới 8.000 ký tự, để tránh chép một vùng mã quá dài như các gói trước.
 
-Có thể tải ZIP từ GitHub và mở **START-PRO.cmd** trước. Cách chép bốn phần dưới đây chỉ cần khi không tải được file.
+Có thể tải ZIP từ GitHub và mở **START-PRO.cmd** trước. Cách chép bảy phần dưới đây chỉ cần khi không tải được file.
 
 1. Mở một cửa sổ Windows PowerShell mới bằng tài khoản dùng máy hằng ngày, không cần administrator.
-2. Mở [phần 1 — thiết lập và hoàn tác](PRO-Paste-1.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán vào PowerShell rồi Enter.
-3. Làm tương tự với [phần 2 — quản lý khởi động](PRO-Paste-2.ps1).
-4. Làm tương tự với [phần 3 — công cụ đo](PRO-Paste-3.ps1).
-5. Cuối cùng chép [phần 4 — giao diện](PRO-Paste-4.ps1) để mở cửa sổ PC Tuner Pro.
+2. Mở [phần 1](PRO-Paste-1.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+3. Mở [phần 2](PRO-Paste-2.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+4. Mở [phần 3](PRO-Paste-3.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+5. Mở [phần 4](PRO-Paste-4.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+6. Mở [phần 5](PRO-Paste-5.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+7. Mở [phần 6](PRO-Paste-6.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
+8. Mở [phần 7](PRO-Paste-7.ps1), bấm vào vùng mã, Ctrl+A, Ctrl+C; dán toàn bộ vào PowerShell rồi Enter. Đợi hết lỗi (nếu có) trước khi sang phần tiếp theo.
 
-Sau khi mở được giao diện, nhấn **Lưu ứng dụng** để lưu thư mục có `START.cmd` lên Desktop cho lần dùng sau. Không cần chép lại bốn phần ở mỗi lần mở.
+Sau khi mở được giao diện, nhấn **Lưu ứng dụng** để lưu thư mục có `START.cmd` lên Desktop cho lần dùng sau. Không cần chép lại bảy phần ở mỗi lần mở.
 
-Ba phần đầu khai báo chức năng, chưa chỉnh Windows. Phần cuối mở giao diện; thay đổi chỉ diễn ra khi bạn chọn nút và xác nhận. Nếu PowerShell còn ở dấu `>>` sau khi dán đầy đủ một phần, nhấn Enter thêm một lần. Nếu báo lỗi đỏ, dừng và gửi lỗi; không tự thêm dấu ngoặc.
+Sáu phần đầu khai báo chức năng, chưa chỉnh Windows. Phần cuối mở giao diện; thay đổi chỉ diễn ra khi bạn chọn nút và xác nhận. Nếu PowerShell còn ở dấu `>>` sau khi dán đầy đủ một phần, nhấn Enter thêm một lần. Nếu báo lỗi đỏ, dừng và gửi lỗi; không tự thêm dấu ngoặc.
 
-File [PC-Tuner-Pro.ps1](PC-Tuner-Pro.ps1) là bản một file tương đương, dành cho khi chức năng lưu file của ứng dụng hoạt động trở lại. Bốn phần chép khớp chính xác file này.
+File [PC-Tuner-Pro.ps1](PC-Tuner-Pro.ps1) là bản một file tương đương, dành cho khi chức năng lưu file của ứng dụng hoạt động trở lại. Bảy phần chép khớp chính xác file này.
 
 ## Các nút
 
@@ -46,8 +49,8 @@ Cả hai thao tác dùng khóa file để tránh sửa đồng thời. Nếu có
 ## Kiểm tra đã chạy
 
 - 16 kiểm tra core tối ưu/hoàn tác: registry và powercfg giả lập, file snapshot thật.
-- 30 kiểm tra startup và ghép phần mềm: raw ExpandString, không sửa ứng dụng ngoài lựa chọn, chặn mục được bảo vệ, lựa chọn cũ, xung đột, thao tác dở dang, user sai, khóa file và cú pháp/độ dài bốn phần.
-- Kiểm tra Keep app đã ghi script có đủ 20 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
+- 33 kiểm tra startup và ghép phần mềm: raw ExpandString, không sửa ứng dụng ngoài lựa chọn, chặn mục được bảo vệ, lựa chọn cũ, xung đột, thao tác dở dang, user sai, khóa file và cú pháp/độ dài bảy phần.
+- Kiểm tra Keep app đã ghi script có đủ 38 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
 - Một tiến trình nền PowerShell thật đã chạy báo cáo CPU/RAM của tiến trình trên Linux và trả về đủ hai bảng.
 - Windows Forms, WMI/registry/powercfg trên Windows, giao diện tiếng Việt và hiệu năng game chưa được thử trực tiếp trên PC của bạn. Chưa có bằng chứng tăng FPS.
 
@@ -62,3 +65,13 @@ FurMark 5 FPS ở 1920×1061, GPU 100% là kết quả bài ép GPU, không đ�
 Nút và thông báo riêng của ứng dụng đã được dịch. Hộp xác nhận dùng **Đồng ý / Hủy**, mặc định là Hủy. Các nhãn báo cáo cũng hiển thị bằng tiếng Việt; tên phần cứng, tên tiến trình, đường dẫn và chi tiết lỗi hệ thống giữ đúng dữ liệu Windows.
 
 Các mã chế độ trong snapshot vẫn giữ nguyên để khôi phục được bản sao lưu của bản tiếng Anh. Tải lại ZIP và giải nén vào thư mục mới, mở START-PRO.cmd; sau đó có thể chọn **Lưu ứng dụng** để lưu bản tiếng Việt lên Desktop.
+
+## Giao diện 2.0
+
+Thanh trái chuyển giữa Tổng quan, Tối ưu Windows, Khởi động và Chẩn đoán. Cửa sổ dùng nền tối xanh đen và điểm nhấn xanh ngọc; danh sách khởi động và hộp xác nhận theo cùng tông màu.
+
+Tổng quan hiển thị bốn thẻ CPU, RAM, card đồ họa và ổ Windows. Máy được quét một lần khi mở; có thể quét lại bằng nút Kiểm tra máy. Dòng thời gian ghi rõ đây là snapshot lúc quét, không phải giám sát liên tục. Số 0 hợp lệ vẫn được hiện; chỉ số lỗi hoặc không có dữ liệu ghi Chưa đọc được. GPU có thể liệt kê nhiều adapter, không đo mức sử dụng GPU hoặc khẳng định adapter nào đang chạy game.
+
+Trạng thái sao lưu ở thanh trái chỉ báo có tệp; thao tác Hoàn tác vẫn phải kiểm tra nội dung tệp như trước. Thanh tiến trình chỉ chạy khi có tác vụ. Điều hướng vẫn dùng được trong lúc đo, các nút thao tác tạm khóa để tránh chạy chồng.
+
+Đã chạy 13 kiểm tra snapshot/chuyển trang và chạy luồng quét nền thật với điều khiển mô phỏng. Bố cục WinForms chưa được dựng/quan sát trực tiếp trên Windows trong phiên Linux này.

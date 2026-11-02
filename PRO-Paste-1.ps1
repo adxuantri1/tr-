@@ -72,11 +72,14 @@ function Tune($Mode,$Backup) {
         return 'Đã áp dụng. Hãy đăng xuất rồi đăng nhập lại Windows. Giữ bản sao lưu để hoàn tác.'
     } finally { $lock.Dispose() }
 }
-function ConfirmAction([string]$Text) {
-    $dialog=New-Object Windows.Forms.Form; $dialog.Text='Xác nhận thay đổi'; $dialog.Width=620; $dialog.Height=260; $dialog.StartPosition='CenterParent'; $dialog.FormBorderStyle='FixedDialog'; $dialog.MaximizeBox=$false; $dialog.MinimizeBox=$false
-    $message=New-Object Windows.Forms.Label; $message.SetBounds(20,20,560,140); $message.Text=$Text; $dialog.Controls.Add($message)
-    $yes=New-Object Windows.Forms.Button; $yes.Text='Đồng ý'; $yes.SetBounds(320,170,120,35); $yes.DialogResult='Yes'; $dialog.Controls.Add($yes)
-    $cancel=New-Object Windows.Forms.Button; $cancel.Text='Hủy'; $cancel.SetBounds(460,170,120,35); $cancel.DialogResult='Cancel'; $dialog.Controls.Add($cancel)
-    $dialog.AcceptButton=$cancel; $dialog.CancelButton=$cancel; $dialog.ActiveControl=$cancel
-    try { return $dialog.ShowDialog($script:Form) -eq 'Yes' } finally { $dialog.Dispose() }
+function ReadStartup($Name) {
+    $path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+    if (-not (Test-Path -LiteralPath $path)) { return $null }
+    $k=Get-Item -LiteralPath $path
+    try {
+        if ($k.GetValueNames() -notcontains $Name) { return $null }
+        $kind=$k.GetValueKind($Name).ToString()
+        if ($kind -notin @('String','ExpandString')) { throw 'Kiểu dữ liệu ứng dụng khởi động không được hỗ trợ.' }
+        [pscustomobject]@{Name=$Name; Kind=$kind; Value=$k.GetValue($Name,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}
+    } finally { $k.Close() }
 }
