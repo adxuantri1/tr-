@@ -7,7 +7,7 @@ $code=ExportProText
 $tokens=$null;$errors=$null;$export=[Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw $errors[0]}
 $definitions=@($export.FindAll({param($a) $a -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
-if($definitions.Count -ne 38){throw 'Export missing application functions'}
+if($definitions.Count -ne 39){throw 'Export missing application functions'}
 # Load only the preamble, not the final Windows UI invocation, then verify config serialization.
 $preamble=$code.Substring(0,$code.IndexOf('function UserID'))
 Invoke-Expression $preamble
@@ -25,6 +25,14 @@ try {
  $bytes=[IO.File]::ReadAllBytes($ps1)
  if($bytes[0] -ne 239 -or $bytes[1] -ne 187 -or $bytes[2] -ne 191){throw 'Saved Windows script needs UTF-8 BOM'}
  $launcher=Get-Content -LiteralPath $cmd -Raw
+ $expectedLauncher=ProLauncherText
+ foreach($file in @($cmd,(Join-Path (Split-Path -Parent $PSScriptRoot) 'START-PRO.cmd'))){
+  $raw=[IO.File]::ReadAllBytes($file)
+  if(@($raw|Where-Object {$_ -gt 127}).Count){throw "Batch launcher must be ASCII without BOM: $file"}
+  $text=[Text.Encoding]::ASCII.GetString($raw)
+  if($text -cne $expectedLauncher -or $text -match '(?<!\r)\n' -or $text -match '\r(?!\n)'){throw "Root and installed launchers must use identical CRLF Windows batch content: $file"}
+  if(-not $text.Contains('"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"') -or $text.Contains('chcp')){throw 'Launcher must use native PowerShell without changing the code page'}
+ }
  if(-not $launcher.Contains('%~dp0PC-Tuner-Pro.ps1') -or -not $launcher.Contains('-STA') -or -not $launcher.StartsWith('@echo off')){throw 'Invalid standalone Windows launcher'}
- 'PASS: Keep app writes the verified standalone script and launcher; all 38 functions, four targets and UTF-8 BOM preserved.'
+ 'PASS: Keep app writes the verified standalone script and launcher; all 39 functions, four targets and UTF-8 BOM preserved.'
 } finally {Remove-Item -LiteralPath $temp -Recurse -Force}

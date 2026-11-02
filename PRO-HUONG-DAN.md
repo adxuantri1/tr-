@@ -50,7 +50,7 @@ Cả hai thao tác dùng khóa file để tránh sửa đồng thời. Nếu có
 
 - 16 kiểm tra core tối ưu/hoàn tác: registry và powercfg giả lập, file snapshot thật.
 - 33 kiểm tra startup và ghép phần mềm: raw ExpandString, không sửa ứng dụng ngoài lựa chọn, chặn mục được bảo vệ, lựa chọn cũ, xung đột, thao tác dở dang, user sai, khóa file và cú pháp/độ dài bảy phần.
-- Kiểm tra Keep app đã ghi script có đủ 38 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
+- Kiểm tra Keep app đã ghi script có đủ 39 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
 - Một tiến trình nền PowerShell thật đã chạy báo cáo CPU/RAM của tiến trình trên Linux và trả về đủ hai bảng.
 - Windows Forms, WMI/registry/powercfg trên Windows, giao diện tiếng Việt và hiệu năng game chưa được thử trực tiếp trên PC của bạn. Chưa có bằng chứng tăng FPS.
 
@@ -75,3 +75,9 @@ Tổng quan hiển thị bốn thẻ CPU, RAM, card đồ họa và ổ Windows.
 Trạng thái sao lưu ở thanh trái chỉ báo có tệp; thao tác Hoàn tác vẫn phải kiểm tra nội dung tệp như trước. Thanh tiến trình chỉ chạy khi có tác vụ. Điều hướng vẫn dùng được trong lúc đo, các nút thao tác tạm khóa để tránh chạy chồng.
 
 Đã chạy 13 kiểm tra snapshot/chuyển trang và chạy luồng quét nền thật với điều khiển mô phỏng. Bố cục WinForms chưa được dựng/quan sát trực tiếp trên Windows trong phiên Linux này.
+
+## Sửa lỗi file khởi động
+
+Launcher tải về và launcher tạo bởi **Lưu ứng dụng** dùng cùng nội dung ASCII, xuống dòng CRLF và đường dẫn đầy đủ tới Windows PowerShell có sẵn. `.gitattributes` giữ nguyên byte của file CMD trong ZIP GitHub. Không cần đổi code page để chạy giao diện tiếng Việt; script PowerShell vẫn giữ BOM UTF-8.
+
+`tests/Pro.Export.Tests.ps1` kiểm tra byte của cả hai launcher. `tests/Pro.Launcher.Windows.Tests.ps1` chạy thử launcher thật với một script vô hại, kiểm tra đường dẫn có dấu/có khoảng trắng và chế độ STA. Bài native CMD được ghi SKIP trên Linux, không tính là đã chạy Windows thành công.

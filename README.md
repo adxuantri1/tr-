@@ -51,3 +51,9 @@ pwsh -NoProfile -File tests/Pro.Dashboard.Tests.ps1
 Bản tiếng Việt đã kiểm tra nhãn của 10 nút, chín luồng thao tác có thể mô phỏng, hộp xác nhận Đồng ý/Hủy và BOM UTF-8 cho Windows PowerShell 5.1. Chức năng và định dạng snapshot giữ nguyên, dùng tiếp được bản sao lưu cũ. Hộp chọn file và lỗi hệ thống có thể theo ngôn ngữ Windows.
 
 Bản 2.0 có thêm 13 kiểm tra dữ liệu snapshot và chuyển trang, bao gồm dữ liệu 0 hợp lệ, giá trị ngoài phạm vi, mất nguồn dữ liệu và xóa thông tin cũ khi lần quét mới thất bại. Luồng hoàn thành job được chạy với điều khiển mô phỏng. Chưa dựng hoặc quan sát trực tiếp giao diện WinForms trên Windows trong môi trường Linux này.
+
+## Sửa lỗi file khởi động
+
+Launcher tải về và launcher tạo bởi **Lưu ứng dụng** dùng cùng nội dung ASCII, xuống dòng CRLF và đường dẫn đầy đủ tới Windows PowerShell có sẵn. `.gitattributes` giữ nguyên byte của file CMD trong ZIP GitHub. Không cần đổi code page để chạy giao diện tiếng Việt; script PowerShell vẫn giữ BOM UTF-8.
+
+`tests/Pro.Export.Tests.ps1` kiểm tra byte của cả hai launcher. `tests/Pro.Launcher.Windows.Tests.ps1` chạy thử launcher thật với một script vô hại, kiểm tra đường dẫn có dấu/có khoảng trắng và chế độ STA. Bài native CMD được ghi SKIP trên Linux, không tính là đã chạy Windows thành công.
