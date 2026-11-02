@@ -1,4 +1,4 @@
-$ErrorActionPreference='Stop'
+﻿$ErrorActionPreference='Stop'
 . "$PSScriptRoot/../Pro-1-Core.ps1"
 . "$PSScriptRoot/../Pro-2-Tools.ps1"
 $ast=[Management.Automation.Language.Parser]::ParseFile("$PSScriptRoot/../Pro-3-Window.ps1",[ref]$null,[ref]$null)
@@ -14,7 +14,7 @@ try {
  if($null -eq $script:Job -or $script:Buttons[0].Enabled -or -not $script:Timer.Started){throw 'Report did not enter busy state correctly'}
  $null=Wait-Job $script:Job -Timeout 20
  $result=Receive-Job $script:Job -ErrorAction Stop|Out-String
- if($script:Job.State -ne 'Completed' -or $result -notmatch 'TOP CPU' -or $result -notmatch 'TOP RAM'){throw 'Report did not return the intended process statistics'}
+ if($script:Job.State -ne 'Completed' -or $result -notmatch 'ỨNG DỤNG DÙNG NHIỀU CPU' -or $result -notmatch 'ỨNG DỤNG DÙNG NHIỀU RAM'){throw 'Report did not return the intended process statistics'}
  'PASS: actual StartReport controller launched and completed its real background report (mock UI controls, live local process counters).'
 } finally {
  if($null -ne $script:Job){if($script:Job.State -eq 'Running'){Stop-Job $script:Job};Remove-Job $script:Job -Force}

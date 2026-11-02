@@ -1,11 +1,11 @@
-function ReadStartup($Name) {
+﻿function ReadStartup($Name) {
     $path='HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
     if (-not (Test-Path -LiteralPath $path)) { return $null }
     $k=Get-Item -LiteralPath $path
     try {
         if ($k.GetValueNames() -notcontains $Name) { return $null }
         $kind=$k.GetValueKind($Name).ToString()
-        if ($kind -notin @('String','ExpandString')) { throw 'Unsupported startup entry type.' }
+        if ($kind -notin @('String','ExpandString')) { throw 'Kiểu dữ liệu ứng dụng khởi động không được hỗ trợ.' }
         [pscustomobject]@{Name=$Name; Kind=$kind; Value=$k.GetValue($Name,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}
     } finally { $k.Close() }
 }
@@ -23,21 +23,21 @@ function StartupChange($Undo,$Entries,$File) {
     $lock=[IO.File]::Open(($File+'.lock'),'OpenOrCreate','ReadWrite','None')
     try {
         if ($Undo) {
-            if (-not (Test-Path -LiteralPath $File)) { throw 'No startup backup found.' }
+            if (-not (Test-Path -LiteralPath $File)) { throw 'Chưa có bản sao lưu ứng dụng khởi động.' }
             $s=Get-Content -LiteralPath $File -Raw | ConvertFrom-Json
-            if ($s.Version -ne 1 -or $s.User -ne (UserID) -or @($s.Items).Count -lt 1 -or @($s.Items).Count -gt 1000) { throw 'Invalid startup backup.' }
+            if ($s.Version -ne 1 -or $s.User -ne (UserID) -or @($s.Items).Count -lt 1 -or @($s.Items).Count -gt 1000) { throw 'Bản sao lưu ứng dụng khởi động không hợp lệ.' }
         } else {
-            if (Test-Path -LiteralPath $File) { throw 'Restore previous startup backup first.' }
-            if (@($Entries).Count -eq 0) { throw 'Select at least one startup app.' }
+            if (Test-Path -LiteralPath $File) { throw 'Hãy hoàn tác thay đổi khởi động trước khi chọn ứng dụng khác.' }
+            if (@($Entries).Count -eq 0) { throw 'Hãy chọn ít nhất một ứng dụng khởi động.' }
             $s=[pscustomobject]@{Version=1; User=(UserID); Items=@($Entries)}
         }
         $names=@{}
         foreach ($v in $s.Items) {
-            if ($v.Name -isnot [string] -or -not $v.Name -or $v.Kind -notin @('String','ExpandString') -or $v.Value -isnot [string] -or $names.ContainsKey($v.Name)) { throw 'Invalid or duplicate startup entry.' }
+            if ($v.Name -isnot [string] -or -not $v.Name -or $v.Kind -notin @('String','ExpandString') -or $v.Value -isnot [string] -or $names.ContainsKey($v.Name)) { throw 'Mục khởi động không hợp lệ hoặc bị trùng.' }
             $names[$v.Name]=$true
             $current=ReadStartup $v.Name
-            if ($null -ne $current -and ($current.Kind -ne $v.Kind -or $current.Value -cne $v.Value)) { throw 'Startup entry changed. Refresh or resolve the conflict before continuing.' }
-            if (-not $Undo -and ($null -eq $current -or $v.Name -match 'Riot|Vanguard|Security|Defender|NVIDIA|Realtek|Intel')) { throw 'Missing or protected startup entry. Refresh the list.' }
+            if ($null -ne $current -and ($current.Kind -ne $v.Kind -or $current.Value -cne $v.Value)) { throw 'Mục khởi động đã thay đổi. Hãy mở lại danh sách hoặc xử lý xung đột trước khi tiếp tục.' }
+            if (-not $Undo -and ($null -eq $current -or $v.Name -match 'Riot|Vanguard|Security|Defender|NVIDIA|Realtek|Intel')) { throw 'Mục khởi động đã mất hoặc được bảo vệ. Hãy mở lại danh sách.' }
         }
         if (-not $Undo) { $s | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $File -Encoding UTF8; $null=Get-Content -LiteralPath $File -Raw | ConvertFrom-Json }
         foreach ($v in $s.Items) {
@@ -45,33 +45,33 @@ function StartupChange($Undo,$Entries,$File) {
                 if (-not (Test-Path -LiteralPath $path)) { $null=New-Item -Path $path }
                 $null=New-ItemProperty -LiteralPath $path -Name $v.Name -PropertyType $v.Kind -Value $v.Value -Force
                 $a=ReadStartup $v.Name
-                if ($null -eq $a -or $a.Kind -ne $v.Kind -or $a.Value -cne $v.Value) { throw 'Startup restore verification failed.' }
+                if ($null -eq $a -or $a.Kind -ne $v.Kind -or $a.Value -cne $v.Value) { throw 'Không xác minh được kết quả khôi phục ứng dụng khởi động.' }
             } else {
                 $now=ReadStartup $v.Name
-                if ($null -eq $now -or $now.Kind -ne $v.Kind -or $now.Value -cne $v.Value) { throw 'Startup changed during save. Backup kept.' }
+                if ($null -eq $now -or $now.Kind -ne $v.Kind -or $now.Value -cne $v.Value) { throw 'Mục khởi động thay đổi trong lúc lưu. Bản sao lưu vẫn được giữ.' }
                 Remove-ItemProperty -LiteralPath $path -Name $v.Name
-                if ($null -ne (ReadStartup $v.Name)) { throw 'Startup disable verification failed.' }
+                if ($null -ne (ReadStartup $v.Name)) { throw 'Không xác minh được việc tắt ứng dụng khởi động.' }
             }
         }
         if ($Undo) { Move-Item -LiteralPath $File -Destination ($File+'.restored-'+[guid]::NewGuid().ToString('N')) }
-        return 'Startup settings saved. Changes affect NEXT sign-in; running apps are not closed.'
+        return 'Đã lưu thiết lập khởi động. Thay đổi có hiệu lực ở lần đăng nhập sau; ứng dụng đang chạy không bị đóng.'
     } finally { $lock.Dispose() }
 }
 function ExportProText {
     $items=$script:Targets | ForEach-Object { "@('"+$_[0].Replace("'","''")+"','"+$_[1].Replace("'","''")+"')" }
     $head='$ErrorActionPreference="Stop";$script:High="'+$script:High+'";$script:Targets=@('+($items -join ',')+');'
-    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','StartupWindow','StartReport','Start-Pro')
+    $names=@('UserID','Power','Active','Plan','ReadValue','WriteValue','Tune','ReadStartup','StartupEntries','StartupChange','ExportProText','InstallPro','AppReport','HealthReport','LoadReport','NetworkReport','ConfirmAction','StartupWindow','StartReport','Start-Pro')
     $defs=$names | ForEach-Object { 'function '+$_+' {'+(Get-Command $_ -CommandType Function).Definition+'}' }
     return $head+"`n"+($defs -join "`n")+"`nStart-Pro`n"
 }
 function InstallPro([string]$desktop = [Environment]::GetFolderPath('Desktop')) {
-    if (-not $desktop) { throw 'Desktop not found.' }
+    if (-not $desktop) { throw 'Không tìm thấy thư mục Desktop.' }
     $folder=Join-Path $desktop ('PC-Tuner-Pro-'+[guid]::NewGuid().ToString('N').Substring(0,8))
     $null=New-Item -ItemType Directory -Path $folder
     [IO.File]::WriteAllText((Join-Path $folder 'PC-Tuner-Pro.ps1'),(ExportProText),[Text.UTF8Encoding]::new($true))
-    $cmd=@('@echo off','powershell.exe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0PC-Tuner-Pro.ps1"','pause') -join "`r`n"
-    [IO.File]::WriteAllText((Join-Path $folder 'START.cmd'),$cmd,[Text.Encoding]::ASCII)
-    return "App saved: $folder`r`nNext time, open START.cmd in that folder. No auto-start or permanent execution-policy change was added."
+    $cmd=@('@echo off','chcp 65001 >nul','powershell.exe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0PC-Tuner-Pro.ps1"','set "PC_TUNER_EXIT=%ERRORLEVEL%"','if not "%PC_TUNER_EXIT%"=="0" (','echo Không mở được ứng dụng. Xem lỗi phía trên rồi nhấn phím bất kỳ để đóng.','pause >nul',')','exit /b %PC_TUNER_EXIT%') -join "`r`n"
+    [IO.File]::WriteAllText((Join-Path $folder 'START.cmd'),$cmd,[Text.UTF8Encoding]::new($false))
+    return "Đã lưu ứng dụng: $folder`r`nLần sau mở START.cmd trong thư mục đó. Không tạo tự khởi động hoặc đổi chính sách chạy lệnh vĩnh viễn."
 }
 function AppReport {
     $before=@{}; $watch=[Diagnostics.Stopwatch]::StartNew()
@@ -88,23 +88,23 @@ function AppReport {
             }
         } catch {}
     })
-    'TOP CPU: two-second sample, normalized across logical processors (not FPS)'
-    $rows | Sort-Object CPU_pct -Descending | Select-Object -First 12 | Format-Table -AutoSize | Out-String
-    'TOP RAM: working set, not proof of a memory leak'
-    $rows | Sort-Object RAM_MB -Descending | Select-Object -First 12 | Format-Table -AutoSize | Out-String
-    'No applications were closed. Review unused apps manually.'
+    'ỨNG DỤNG DÙNG NHIỀU CPU: đo trong khoảng hai giây, chuẩn hóa theo số luồng CPU; không phải FPS.'
+    $rows | Sort-Object CPU_pct -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
+    'ỨNG DỤNG DÙNG NHIỀU RAM: bộ nhớ đang chiếm dụng; chưa chứng minh rò rỉ bộ nhớ.'
+    $rows | Sort-Object RAM_MB -Descending | Select-Object -First 12 | Format-Table @{N='Ứng dụng';E={$_.App}},PID,@{N='CPU (%)';E={$_.CPU_pct}},@{N='RAM (MB)';E={$_.RAM_MB}} -AutoSize | Out-String
+    'Chưa đóng ứng dụng nào. Bạn có thể tự xem và đóng các ứng dụng không dùng.'
 }
 function HealthReport {
     foreach ($class in @('Win32_Processor','Win32_VideoController','Win32_OperatingSystem','Win32_ComputerSystem','Win32_LogicalDisk')) {
         try {
             switch ($class) {
-                'Win32_Processor' { Get-CimInstance $class | Select-Object Name,NumberOfCores,NumberOfLogicalProcessors | Format-Table | Out-String }
-                'Win32_VideoController' { Get-CimInstance $class | Select-Object Name,DriverVersion | Format-Table | Out-String }
-                'Win32_OperatingSystem' { Get-CimInstance $class | Select-Object Caption,@{N='FreeRAM_MB';E={[math]::Round($_.FreePhysicalMemory/1KB)}},@{N='TotalRAM_MB';E={[math]::Round($_.TotalVisibleMemorySize/1KB)}} | Format-Table | Out-String }
-                'Win32_ComputerSystem' { Get-CimInstance $class | Select-Object AutomaticManagedPagefile | Format-Table | Out-String }
-                'Win32_LogicalDisk' { Get-CimInstance $class -Filter 'DriveType=3' | Select-Object DeviceID,@{N='FreeGB';E={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table | Out-String }
+                'Win32_Processor' { Get-CimInstance $class | Select-Object @{N='CPU';E={$_.Name}},@{N='Số nhân';E={$_.NumberOfCores}},@{N='Số luồng';E={$_.NumberOfLogicalProcessors}} | Format-Table | Out-String }
+                'Win32_VideoController' { Get-CimInstance $class | Select-Object @{N='Card đồ họa';E={$_.Name}},@{N='Driver';E={$_.DriverVersion}} | Format-Table | Out-String }
+                'Win32_OperatingSystem' { Get-CimInstance $class | Select-Object @{N='Windows';E={$_.Caption}},@{N='RAM trống (MB)';E={[math]::Round($_.FreePhysicalMemory/1KB)}},@{N='Tổng RAM (MB)';E={[math]::Round($_.TotalVisibleMemorySize/1KB)}} | Format-Table | Out-String }
+                'Win32_ComputerSystem' { Get-CimInstance $class | Select-Object @{N='Bộ nhớ ảo tự quản lý';E={if ($null -eq $_.AutomaticManagedPagefile) {'Không rõ'} elseif ($_.AutomaticManagedPagefile) {'Bật'} else {'Tắt'}}} | Format-Table | Out-String }
+                'Win32_LogicalDisk' { Get-CimInstance $class -Filter 'DriveType=3' | Select-Object @{N='Ổ đĩa';E={$_.DeviceID}},@{N='Trống (GB)';E={[math]::Round($_.FreeSpace/1GB,1)}} | Format-Table | Out-String }
             }
-        } catch { 'Unavailable: '+$class+' - '+$_.Exception.Message }
+        } catch { 'Không đọc được: '+$class+' - '+$_.Exception.Message }
     }
     AppReport
 }
@@ -115,22 +115,23 @@ function LoadReport {
         $os=Get-CimInstance Win32_OperatingSystem
         [pscustomobject]@{Time=[DateTime]::Now; CPU=[double]$cpu.PercentProcessorTime; FreeRAM_MB=[math]::Round($os.FreePhysicalMemory/1KB)}
     })
-    '20 CPU/RAM samples. Short spikes may be missed; NOT a game FPS/temperature/GPU measurement.'
-    $samples | Format-Table -AutoSize | Out-String
-    'CPU: '+(($samples | Measure-Object CPU -Average -Maximum) | Out-String)
-    'Minimum free RAM MB: '+($samples | Measure-Object FreeRAM_MB -Minimum).Minimum
-    'CPU near 95-100% or low free RAM are clues, not a confirmed bottleneck. Close the tool for normal play.'
+    '20 mẫu CPU/RAM. Có thể bỏ lỡ cú khựng ngắn; không đo FPS, nhiệt độ hay mức tải GPU.'
+    $samples | Format-Table @{N='Thời gian';E={$_.Time}},@{N='CPU (%)';E={$_.CPU}},@{N='RAM trống (MB)';E={$_.FreeRAM_MB}} -AutoSize | Out-String
+    $stats=$samples | Measure-Object CPU -Average -Maximum
+    ('CPU trung bình: {0:N1}%; cao nhất: {1:N1}%' -f $stats.Average,$stats.Maximum)
+    'RAM trống thấp nhất (MB): '+($samples | Measure-Object FreeRAM_MB -Minimum).Minimum
+    'CPU gần 95–100% hoặc RAM trống thấp là dấu hiệu cần kiểm tra thêm, chưa khẳng định nguyên nhân. Đóng công cụ khi chơi bình thường.'
 }
 function NetworkReport {
     $targets=@('1.1.1.1')
-    try { $r=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' | Where-Object {$_.NextHop -ne '0.0.0.0'} | Sort-Object RouteMetric | Select-Object -First 1; if ($r) { $targets=@($r.NextHop)+$targets } } catch { 'Gateway unavailable; public target only.' }
+    try { $r=Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' | Where-Object {$_.NextHop -ne '0.0.0.0'} | Sort-Object RouteMetric | Select-Object -First 1; if ($r) { $targets=@($r.NextHop)+$targets } } catch { 'Không đọc được gateway; chỉ kiểm tra địa chỉ công cộng.' }
     $p=New-Object Net.NetworkInformation.Ping
     try {
         foreach ($target in $targets) {
             $ok=@(for ($i=0;$i -lt 8;$i++) { if ($i) { Start-Sleep -Milliseconds 250 }; try { $r=$p.Send([string]$target,800); if ($r.Status -eq 'Success') { [double]$r.RoundtripTime } } catch {} })
-            "Target: $target; replies: $($ok.Count)/8; no-reply: $([math]::Round(100*(8-$ok.Count)/8,1))%"
-            if ($ok.Count) { $ok | Measure-Object -Average -Minimum -Maximum | Out-String } else { 'No ICMP replies; filtering is possible.' }
+            "Địa chỉ: $target; phản hồi: $($ok.Count)/8; không phản hồi: $([math]::Round(100*(8-$ok.Count)/8,1))%"
+            if ($ok.Count) { $stats=$ok | Measure-Object -Average -Minimum -Maximum; ('Độ trễ (ms): thấp nhất {0:N1}; trung bình {1:N1}; cao nhất {2:N1}' -f $stats.Minimum,$stats.Average,$stats.Maximum) } else { 'Không có phản hồi ICMP; có thể giao thức này bị chặn.' }
         }
     } finally { $p.Dispose() }
-    'ICMP only. Public target is Cloudflare, NOT Riot. No-replies do not prove game packet loss. No network settings changed.'
+    'Chỉ đo ICMP đến gateway và Cloudflare, không phải server game. Thiếu phản hồi chưa chứng minh game mất gói. Chưa đổi thiết lập mạng.'
 }

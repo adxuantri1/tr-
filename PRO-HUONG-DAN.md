@@ -4,7 +4,7 @@ Bản nâng cấp cho Windows 10/11, dùng PowerShell 5.1 có sẵn. Không có 
 
 ## Chạy khi tải artifact bị lỗi
 
-Bốn phần dưới đây là mã thường, không phải dữ liệu nén. Mỗi phần chỉ 59–85 dòng, dưới 8.000 ký tự, để tránh chép một vùng mã quá dài như các gói trước.
+Bốn phần dưới đây là mã thường, không phải dữ liệu nén. Mỗi phần chỉ 73–82 dòng, dưới 8.000 ký tự, để tránh chép một vùng mã quá dài như các gói trước.
 
 Có thể tải ZIP từ GitHub và mở **START-PRO.cmd** trước. Cách chép bốn phần dưới đây chỉ cần khi không tải được file.
 
@@ -14,7 +14,7 @@ Có thể tải ZIP từ GitHub và mở **START-PRO.cmd** trước. Cách chép
 4. Làm tương tự với [phần 3 — công cụ đo](PRO-Paste-3.ps1).
 5. Cuối cùng chép [phần 4 — giao diện](PRO-Paste-4.ps1) để mở cửa sổ PC Tuner Pro.
 
-Sau khi mở được giao diện, nhấn **Keep app** để lưu thư mục có `START.cmd` lên Desktop cho lần dùng sau. Không cần chép lại bốn phần ở mỗi lần mở.
+Sau khi mở được giao diện, nhấn **Lưu ứng dụng** để lưu thư mục có `START.cmd` lên Desktop cho lần dùng sau. Không cần chép lại bốn phần ở mỗi lần mở.
 
 Ba phần đầu khai báo chức năng, chưa chỉnh Windows. Phần cuối mở giao diện; thay đổi chỉ diễn ra khi bạn chọn nút và xác nhận. Nếu PowerShell còn ở dấu `>>` sau khi dán đầy đủ một phần, nhấn Enter thêm một lần. Nếu báo lỗi đỏ, dừng và gửi lỗi; không tự thêm dấu ngoặc.
 
@@ -47,12 +47,18 @@ Cả hai thao tác dùng khóa file để tránh sửa đồng thời. Nếu có
 
 - 16 kiểm tra core tối ưu/hoàn tác: registry và powercfg giả lập, file snapshot thật.
 - 30 kiểm tra startup và ghép phần mềm: raw ExpandString, không sửa ứng dụng ngoài lựa chọn, chặn mục được bảo vệ, lựa chọn cũ, xung đột, thao tác dở dang, user sai, khóa file và cú pháp/độ dài bốn phần.
-- Kiểm tra Keep app đã ghi script có đủ 19 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
+- Kiểm tra Keep app đã ghi script có đủ 20 hàm và bốn đích registry, parse thành công, giữ BOM UTF-8 và launcher trỏ đúng script. Không cần các file nguồn ban đầu ở lần mở sau.
 - Một tiến trình nền PowerShell thật đã chạy báo cáo CPU/RAM của tiến trình trên Linux và trả về đủ hai bảng.
-- Windows Forms, WMI/registry/powercfg trên Windows, UI tiếng Anh và hiệu năng game chưa được thử trực tiếp trên PC của bạn. Chưa có bằng chứng tăng FPS.
+- Windows Forms, WMI/registry/powercfg trên Windows, giao diện tiếng Việt và hiệu năng game chưa được thử trực tiếp trên PC của bạn. Chưa có bằng chứng tăng FPS.
 
 ## Ép xung và FurMark
 
 G3260 khóa hệ số nhân; script không mở khóa được hệ số nhân như dòng K. Không tự thay BCLK, điện áp, BIOS hay xung GPU. GT 630 cần công cụ hỗ trợ đúng biến thể card và kiểm tra ổn định thực tế; không có mức tối đa chung áp cho mọi card. Không lưu cấu hình ép xung tự động lúc khởi động khi chưa kiểm tra ổn định.
 
 FurMark 5 FPS ở 1920×1061, GPU 100% là kết quả bài ép GPU, không đại diện FPS trong Valorant. Có thể thử 1280×720, AA Off để giảm tải; không bảo đảm đạt 10 FPS và không gọi giảm độ phân giải là tăng sức mạnh phần cứng. Dừng FurMark trước khi đo game.
+
+## Bản tiếng Việt
+
+Nút và thông báo riêng của ứng dụng đã được dịch. Hộp xác nhận dùng **Đồng ý / Hủy**, mặc định là Hủy. Các nhãn báo cáo cũng hiển thị bằng tiếng Việt; tên phần cứng, tên tiến trình, đường dẫn và chi tiết lỗi hệ thống giữ đúng dữ liệu Windows.
+
+Các mã chế độ trong snapshot vẫn giữ nguyên để khôi phục được bản sao lưu của bản tiếng Anh. Tải lại ZIP và giải nén vào thư mục mới, mở START-PRO.cmd; sau đó có thể chọn **Lưu ứng dụng** để lưu bản tiếng Việt lên Desktop.
