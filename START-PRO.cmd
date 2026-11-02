@@ -1,0 +1,6 @@
+@echo off
+setlocal
+cd /d "%~dp0"
+powershell.exe -NoLogo -NoProfile -STA -ExecutionPolicy Bypass -File "%~dp0PC-Tuner-Pro.ps1"
+if errorlevel 1 echo PC Tuner stopped with an error. Read the message above.
+pause
